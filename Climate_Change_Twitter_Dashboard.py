@@ -46,7 +46,7 @@ def analyze_csv(file_bytes):
     df = pd.read_csv(BytesIO(file_bytes))
     needed = {"sentiment", "message"}
     if not needed.issubset(df.columns):
-        raise ValueError("CSV mein 'sentiment' aur 'message' columns hone chahiye.")
+        raise ValueError("The CSV must contain 'sentiment' and 'message' columns.")
     df = df.dropna(subset=["sentiment", "message"]).copy()
     df["category"] = pd.to_numeric(df["sentiment"], errors="coerce").map(LABEL_MAP)
     df = df.dropna(subset=["category"]).copy()
@@ -59,7 +59,7 @@ def analyze_csv(file_bytes):
     df["clean_message"] = df["message"].map(clean_tweet)
     df = df[df["clean_message"].str.strip().ne("")].copy()
     if len(df) < 100:
-        raise ValueError("Cleaning ke baad bahut kam rows bachi hain; dataset check karein.")
+        raise ValueError("Too few rows remain after cleaning. Please check the dataset.")
 
     X_train, X_test, y_train, y_test = train_test_split(
         df["clean_message"], df["category"], test_size=0.2, random_state=42,
@@ -110,18 +110,18 @@ st.markdown("""
 with st.sidebar:
     st.header("Start analysis")
     uploaded = st.file_uploader("Upload Kaggle CSV", type=["csv"])
-    st.caption("twitter_sentiment_data.csv select karein. Analysis isi computer par run hota hai.")
+    st.caption("Select twitter_sentiment_data.csv. The analysis runs locally on this computer.")
 
 if uploaded is None:
-    st.info("Shuru karne ke liye Kaggle dataset ki CSV file upload karein.")
+    st.info("Upload the Kaggle dataset CSV file to get started.")
     st.markdown("**Dataset:** `twitter_sentiment_data.csv` — columns `sentiment`, `message`, `tweetid`.")
     st.stop()
 
 try:
-    with st.spinner("Tweets clean ho rahe hain aur models train ho rahe hain. Pehli baar 1–2 minute lag sakte hain..."):
+    with st.spinner("Cleaning tweets and training models. The first run may take 1–2 minutes..."):
         df, accuracy, macro_f1, cm, topic_words, conflicts_removed = analyze_csv(uploaded.getvalue())
 except Exception as exc:
-    st.error(f"Analysis start nahi hua: {exc}")
+    st.error(f"The analysis could not be started: {exc}")
     st.stop()
 
 st.success(f"Analysis complete · {len(df):,} cleaned tweets · {conflicts_removed} conflicting messages removed")
