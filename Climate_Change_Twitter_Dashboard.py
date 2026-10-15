@@ -1,10 +1,3 @@
-"""Local Streamlit dashboard for the Climate Change Twitter microproject.
-
-Run with:
-    pip install streamlit pandas scikit-learn plotly nltk
-    streamlit run Climate_Change_Twitter_Dashboard.py
-"""
-
 import re
 from io import BytesIO
 
