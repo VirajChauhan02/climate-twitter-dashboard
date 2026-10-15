@@ -1,3 +1,10 @@
+"""Local Streamlit dashboard for the Climate Change Twitter microproject.
+
+Run with:
+    pip install streamlit pandas scikit-learn plotly nltk
+    streamlit run Climate_Change_Twitter_Dashboard.py
+"""
+
 import re
 from io import BytesIO
 
@@ -15,6 +22,7 @@ from sklearn.model_selection import train_test_split
 
 
 st.set_page_config(page_title="Climate Change Twitter Analytics", page_icon="🌍", layout="wide")
+px.defaults.template = "plotly_white"
 
 LABEL_MAP = {-1: "Anti", 0: "Neutral", 1: "Pro", 2: "News"}
 LABEL_ORDER = ["Pro", "Anti", "Neutral", "News"]
@@ -90,7 +98,10 @@ def analyze_csv(file_bytes):
 st.markdown("""
 <style>
 .stApp {background:#f4f7fb;color:#17233a}
-[data-testid="stMetric"] {background:white;border:1px solid #e5ebf3;padding:16px;border-radius:14px}
+[data-testid="stMetric"] {background:#ffffff;border:1px solid #e5ebf3;padding:16px;border-radius:14px;color:#17233a !important}
+[data-testid="stMetric"] *, [data-testid="stMetricLabel"], [data-testid="stMetricValue"] {color:#17233a !important; opacity:1 !important}
+[data-testid="stAlert"] {background:#e8f5e9;border:1px solid #a5d6a7}
+[data-testid="stAlert"] * {color:#1b5e20 !important; opacity:1 !important}
 .hero {padding:25px 30px;border-radius:18px;background:linear-gradient(120deg,#102a43,#087f83);color:white;margin-bottom:20px}
 .hero p {color:#d7e9ef;margin-bottom:0}
 </style>
@@ -133,7 +144,7 @@ with left:
     fig.update_traces(textposition="outside", texttemplate="%{percent:.1%}",
                       hovertemplate="%{label}: %{value:,} tweets (%{percent})<extra></extra>")
     fig.update_layout(height=370, margin=dict(t=10, b=20, l=15, r=15), legend_title="Dataset label")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)
 with right:
     st.subheader("Tweet share by LDA topic")
     topic_counts = df["topic"].value_counts().sort_index().rename_axis("Topic").reset_index(name="Tweets")
@@ -143,7 +154,7 @@ with right:
     fig.update_traces(textposition="outside", texttemplate="%{percent:.1%}",
                       hovertemplate="%{label}: %{value:,} tweets (%{percent})<extra></extra>")
     fig.update_layout(height=370, margin=dict(t=10, b=20, l=15, r=15), legend_title="LDA topic")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)
 
 st.subheader("Dataset label mix within each discussion theme")
 mix = pd.crosstab(df["topic"], df["category"], normalize="index").reindex(columns=LABEL_ORDER, fill_value=0).mul(100).round(1)
@@ -154,7 +165,7 @@ fig = px.bar(mix_long, x="Topic", y="Share (%)", color="Label", barmode="stack",
 fig.update_traces(texttemplate="%{text:.0f}%", textposition="inside",
                   hovertemplate="%{x}<br>%{fullData.name}: %{y:.1f}%<extra></extra>")
 fig.update_layout(height=430, yaxis_range=[0, 100], legend_title="Dataset label", margin=dict(t=15, b=15))
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, theme=None)
 
 left, right = st.columns(2)
 with left:
@@ -162,13 +173,13 @@ with left:
     fig = px.bar(topic_counts, x="Topic", y="Tweets", text="Tweets", color="Topic", color_discrete_sequence=TOPIC_COLORS)
     fig.update_traces(texttemplate="%{text:,}", textposition="outside")
     fig.update_layout(showlegend=False, height=360, margin=dict(t=15, b=15), yaxis_title="Tweets assigned to topic")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)
 with right:
     st.subheader("Classifier confusion matrix")
     fig = px.imshow(cm, x=LABEL_ORDER, y=LABEL_ORDER, text_auto=True, color_continuous_scale="Blues",
                     labels=dict(x="Predicted label", y="Actual label", color="Tweets"), aspect="auto")
     fig.update_layout(height=360, margin=dict(t=15, b=15))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, theme=None)
 
 st.subheader("What the five LDA topics discuss")
 st.caption("LDA topic numbers are model-generated groups, not stance classes. Names/meaning are interpreted from frequent words.")
@@ -188,3 +199,4 @@ st.markdown(f"""
 - **Important:** “News” is an informational label, not an opinion stance. Findings describe this dataset and its existing labels, not all public opinion.
 """)
 st.caption("Source: edqian, Twitter Climate Change Sentiment Dataset (Kaggle).")
+
