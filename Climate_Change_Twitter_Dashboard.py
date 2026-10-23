@@ -1,10 +1,6 @@
-"""Local Streamlit dashboard for the Climate Change Twitter microproject.
-
-Run with:
-    pip install streamlit pandas scikit-learn plotly nltk
-    streamlit run Climate_Change_Twitter_Dashboard.py
-"""
-
+# -----------------------------------------------------------------------------
+# 1. Imports
+# -----------------------------------------------------------------------------
 import re
 from io import BytesIO
 
@@ -20,7 +16,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 from sklearn.model_selection import train_test_split
 
-
+# -----------------------------------------------------------------------------
+# 2. App configuration and shared constants
+# -----------------------------------------------------------------------------
 st.set_page_config(page_title="Climate Change Twitter Analytics", page_icon="🌍", layout="wide")
 px.defaults.template = "plotly_white"
 
@@ -32,6 +30,9 @@ stemmer = PorterStemmer()
 stop_words = set(ENGLISH_STOP_WORDS) - {"no", "nor", "not", "never"}
 
 
+# -----------------------------------------------------------------------------
+# 3. Text preprocessing
+# -----------------------------------------------------------------------------
 def clean_tweet(text):
     text = str(text).lower()
     text = re.sub(r"https?://\S+|www\.\S+", " ", text)
@@ -42,6 +43,9 @@ def clean_tweet(text):
     return " ".join(stemmer.stem(w) for w in words if w not in stop_words and len(w) > 2)
 
 
+# -----------------------------------------------------------------------------
+# 4. Dataset preparation, model training, evaluation, and topic modelling
+# -----------------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
 def analyze_csv(file_bytes):
     df = pd.read_csv(BytesIO(file_bytes))
@@ -62,6 +66,7 @@ def analyze_csv(file_bytes):
     if len(df) < 100:
         raise ValueError("Too few rows remain after cleaning. Please check the dataset.")
 
+    # Split labeled examples; keep label proportions similar in both sets.
     X_train, X_test, y_train, y_test = train_test_split(
         df["clean_message"], df["category"], test_size=0.2, random_state=42,
         stratify=df["category"]
@@ -76,6 +81,7 @@ def analyze_csv(file_bytes):
     macro_f1 = f1_score(y_test, predictions, average="macro")
     cm = confusion_matrix(y_test, predictions, labels=LABEL_ORDER)
 
+    # LDA is a separate, unsupervised analysis of discussion themes.
     count_vectorizer = CountVectorizer(
         max_df=0.90, min_df=10, max_features=3000, ngram_range=(1, 2),
         stop_words=["climat", "chang", "amp"]
@@ -95,6 +101,9 @@ def analyze_csv(file_bytes):
     return df, accuracy, macro_f1, cm, topic_words, conflicts_removed
 
 
+# -----------------------------------------------------------------------------
+# 5. Dashboard styling and project introduction
+# -----------------------------------------------------------------------------
 st.markdown("""
 <style>
 .stApp {background:#f4f7fb;color:#17233a}
@@ -111,6 +120,9 @@ st.markdown("""
 <p><b>Project question:</b> What themes appear in climate-change tweets, and how do the dataset labels vary across those themes?</p></div>
 """, unsafe_allow_html=True)
 
+# -----------------------------------------------------------------------------
+# 6. Upload dataset and handle input/errors
+# -----------------------------------------------------------------------------
 with st.sidebar:
     st.header("Start analysis")
     uploaded = st.file_uploader("Upload Kaggle CSV", type=["csv"])
@@ -128,6 +140,9 @@ except Exception as exc:
     st.error(f"The analysis could not be started: {exc}")
     st.stop()
 
+# -----------------------------------------------------------------------------
+# 7. Summary metrics
+# -----------------------------------------------------------------------------
 st.success(f"Analysis complete · {len(df):,} cleaned tweets · {conflicts_removed} conflicting messages removed")
 k1, k2, k3, k4 = st.columns(4)
 k1.metric("Classifier accuracy", f"{accuracy:.1%}")
@@ -135,6 +150,9 @@ k2.metric("Macro F1-score", f"{macro_f1:.1%}")
 k3.metric("Tweets analyzed", f"{len(df):,}")
 k4.metric("LDA discussion themes", "5")
 
+# -----------------------------------------------------------------------------
+# 8. Dataset label and LDA topic distributions
+# -----------------------------------------------------------------------------
 left, right = st.columns(2)
 with left:
     st.subheader("Dataset label distribution")
@@ -156,6 +174,9 @@ with right:
     fig.update_layout(height=370, margin=dict(t=10, b=20, l=15, r=15), legend_title="LDA topic")
     st.plotly_chart(fig, use_container_width=True, theme=None)
 
+# -----------------------------------------------------------------------------
+# 9. Compare dataset labels within each LDA topic
+# -----------------------------------------------------------------------------
 st.subheader("Dataset label mix within each discussion theme")
 mix = pd.crosstab(df["topic"], df["category"], normalize="index").reindex(columns=LABEL_ORDER, fill_value=0).mul(100).round(1)
 mix.index = [f"Topic {i}" for i in mix.index]
@@ -167,6 +188,9 @@ fig.update_traces(texttemplate="%{text:.0f}%", textposition="inside",
 fig.update_layout(height=430, yaxis_range=[0, 100], legend_title="Dataset label", margin=dict(t=15, b=15))
 st.plotly_chart(fig, use_container_width=True, theme=None)
 
+# -----------------------------------------------------------------------------
+# 10. Topic sizes and classifier evaluation chart
+# -----------------------------------------------------------------------------
 left, right = st.columns(2)
 with left:
     st.subheader("Number of tweets in each topic")
@@ -181,6 +205,9 @@ with right:
     fig.update_layout(height=360, margin=dict(t=15, b=15))
     st.plotly_chart(fig, use_container_width=True, theme=None)
 
+# -----------------------------------------------------------------------------
+# 11. Interpret topic keywords and explain findings
+# -----------------------------------------------------------------------------
 st.subheader("What the five LDA topics discuss")
 st.caption("LDA topic numbers are model-generated groups, not stance classes. Names/meaning are interpreted from frequent words.")
 topic_titles = ["Global warming, causes & weather", "Climate policy & science debate",
